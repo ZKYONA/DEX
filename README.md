@@ -1,77 +1,47 @@
 # ZK DEX
 
-ZK DEX combina una versión moderna de **DeX Explorer** con una copia fijada de
-**UniversalSynSaveInstance (USSI)** para recuperar la experiencia clásica
-"Explorer + Properties + Save Instance" de la época de Synapse X.
+ZK DEX es una recreación **para Roblox Studio y proyectos autorizados** de la parte útil de la experiencia clásica DEX/Synapse: Explorer, Properties y exportación del mapa.
 
-## Estado del proyecto
+## Qué incluye
 
-Base investigada el 18-09-2026:
+- panel tipo DEX dentro de Studio;
+- árbol de `Workspace`;
+- inspector de propiedades comunes;
+- sincronización con `Selection`;
+- botón para guardar la selección como archivo de modelo de Roblox;
+- botón **Save Workspace Map** que selecciona temporalmente los objetos de nivel superior de Workspace y abre el diálogo oficial de guardado de Studio;
+- diagnóstico de cantidad de instancias.
 
-- USSI sigue activo; snapshot integrado desde el commit `936066265affb4e4c9889179a8223064514c7820` (16-09-2026).
-- DeX Explorer 2.2 es la base visual/Explorer.
-- El fallback de Save Instance ya no depende del antiguo URL `luau/SynSaveInstance`.
-- USSI queda embebido dentro de `out.lua` y fijado en este repositorio.
-- Se añadió SafeMode por defecto, salida binaria, SaveBytecode opcional,
-  guardado no reentrante, mejor manejo de errores y diagnóstico de capacidades.
-- No se incluyen rutinas de evasión de anti-cheat ni un inyector/executor.
+## Qué no incluye
 
-## Uso
+No incluye inyector de cliente, evasión de anti-cheat ni técnicas para ejecutar código dentro de experiencias ajenas. Para un place donde tengas permiso de edición, Studio ya tiene acceso al DataModel completo y resulta más fiable que intentar reconstruirlo desde un cliente parcial.
 
-Con un entorno autorizado y compatible que ya pueda ejecutar Luau del lado cliente:
+## Instalación rápida
 
-```lua
-loadstring(game:HttpGet("https://raw.githubusercontent.com/ZKYONA/DEX/main/loader.lua", true))()
+1. Abre Roblox Studio.
+2. Crea un Script local de plugin y pega `src/ZKDexPlugin.server.lua`.
+3. Guarda el Script como **Local Plugin**.
+4. Activa **ZK DEX** desde la barra de plugins.
+
+## Guardar un mapa
+
+- **Save Selection** guarda los objetos seleccionados usando `Plugin:PromptSaveSelectionAsync()`.
+- **Save Workspace Map** toma los hijos de primer nivel de `Workspace`, los selecciona temporalmente, abre el diálogo de guardado y luego restaura tu selección original.
+
+Roblox documenta `PromptSaveSelectionAsync` como una API oficial de plugins para guardar la selección.
+
+## Estructura
+
+```
+src/
+  ZKDexPlugin.server.lua
+  modules/
+    Explorer.lua
+    Inspector.lua
+    Exporter.lua
+default.project.json
 ```
 
-Para revisar compatibilidad antes:
+## Enfoque
 
-```lua
-loadstring(game:HttpGet("https://raw.githubusercontent.com/ZKYONA/DEX/main/diagnostics.lua", true))()
-```
-
-En DeX abre **Save Instance**. Para sacar principalmente el mapa, puedes
-desactivar **Decompile Scripts**. Safe Mode queda activado por defecto.
-
-> Úsalo solo en experiencias tuyas o donde tengas autorización. El cliente solo
-> puede serializar lo que realmente le fue replicado; contenido exclusivamente
-> de servidor no aparece mágicamente en la captura.
-
-## Construcción
-
-```bash
-python build.py
-```
-
-El resultado es `out.lua`. El build incorpora todos los archivos de `modules/`,
-incluyendo el snapshot de USSI.
-
-## Mejoras sobre DeX Explorer 2.2
-
-- USSI fijado y embebido;
-- corrección del fallback obsoleto;
-- SafeMode por defecto;
-- salida binaria y SaveBytecode configurables;
-- corrección de UI en labels;
-- validación de timeout/hilos;
-- parser DecompileIgnore robusto;
-- bloqueo de doble guardado y errores sin romper la UI;
-- TLS para fallback remoto de decompilación;
-- diagnóstico de APIs;
-- sin bloque de bypass anti-cheat.
-
-## Licencias y créditos
-
-La distribución completa se publica bajo **GNU AGPL v3** por incluir USSI.
-El código derivado de DeX conserva también su aviso MIT.
-
-Crédito requerido por USSI:
-
-**UniversalSynSaveInstance https://discord.gg/wx4ThpAsmw**
-
-Consulta `THIRD_PARTY_NOTICES.md`, `third_party/USSI_LICENSE` y
-`third_party/DEX_LICENSE`.
-
-Upstreams:
-- https://github.com/luau/UniversalSynSaveInstance
-- https://github.com/FusionWTF/DeX-Explorer
+La meta es replicar el flujo visual de DEX y la capacidad de sacar el mapa a Studio cuando trabajas con un proyecto autorizado, sin depender de executors externos.
