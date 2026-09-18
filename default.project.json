@@ -4,7 +4,13 @@
     "$className": "DataModel",
     "ServerScriptService": {
       "ZKDexPlugin": {
-        "$path": "src/ZKDexPlugin.server.lua"
+        "$className": "Folder",
+        "Main": {
+          "$path": "src/ZKDexPlugin.server.lua"
+        },
+        "modules": {
+          "$path": "src/modules"
+        }
       }
     }
   }
