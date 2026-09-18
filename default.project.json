@@ -1,0 +1,11 @@
+{
+  "name": "ZKDEX",
+  "tree": {
+    "$className": "DataModel",
+    "ServerStorage": {
+      "ZKDexPlugin": {
+        "$path": "src/ZKDexPlugin.server.lua"
+      }
+    }
+  }
+}
