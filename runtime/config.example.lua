@@ -1,29 +1,24 @@
--- ZK DEX safety configuration.
--- Replace example IDs only with places/universes you are authorized to test.
+-- ZK DEX runtime configuration example
 
 getgenv().ZKDEX_CONFIG = {
-	Authorization = {
-		Acknowledgement = "I_HAVE_PERMISSION_TO_TEST_THIS_PLACE",
-
-		AllowedPlaceIds = {
-			-- [1234567890] = true,
-		},
-
-		AllowedGameIds = {
-			-- [9876543210] = true,
-		},
-
-		AllowedCreatorIds = {
-			-- [12345678] = true,
-		},
-
-		RequirePrivateServer = true,
-	},
-
+	-- Recommended capture profile:
 	MapOnly = true,
+	Binary = true,
+	SafeMode = true,
+
+	-- Set true only if you intentionally want a partial snapshot when
+	-- Workspace.StreamingEnabled is active.
 	AllowStreamingIncomplete = false,
+
+	-- Runtime stability guards:
 	MaxInstances = 400000,
 	SettleSeconds = 3,
 	AllowRepeat = false,
 	RepeatCooldownSeconds = 300,
+
+	-- Visual DEX downloads third-party UI code.
+	AllowExternalDexUI = false,
+
+	-- Optional output name:
+	-- FilePath = "MyMap",
 }
