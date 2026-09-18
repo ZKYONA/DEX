@@ -6,42 +6,56 @@ ZK DEX es una recreación **para Roblox Studio y proyectos autorizados** de la p
 
 - panel tipo DEX dentro de Studio;
 - árbol de `Workspace`;
-- inspector de propiedades comunes;
+- inspector de propiedades comunes y Attributes;
 - sincronización con `Selection`;
-- botón para guardar la selección como archivo de modelo de Roblox;
-- botón **Save Workspace Map** que selecciona temporalmente los objetos de nivel superior de Workspace y abre el diálogo oficial de guardado de Studio;
-- diagnóstico de cantidad de instancias.
+- **Save Selection** usando el diálogo oficial de Studio;
+- **Save Workspace Map** para guardar el mapa como modelo de Roblox;
+- contador de instancias del DataModel;
+- un archivo principal **autocontenido**, para poder guardarlo directamente como Local Plugin.
 
 ## Qué no incluye
 
-No incluye inyector de cliente, evasión de anti-cheat ni técnicas para ejecutar código dentro de experiencias ajenas. Para un place donde tengas permiso de edición, Studio ya tiene acceso al DataModel completo y resulta más fiable que intentar reconstruirlo desde un cliente parcial.
+No incluye inyector de cliente, evasión de anti-cheat ni técnicas para ejecutar código dentro de experiencias ajenas. Para un place donde tengas permiso de edición, Studio accede al DataModel completo y es más fiable que reconstruir un mapa desde un cliente parcial.
 
 ## Instalación rápida
 
 1. Abre Roblox Studio.
-2. Crea un Script local de plugin y pega `src/ZKDexPlugin.server.lua`.
-3. Guarda el Script como **Local Plugin**.
-4. Activa **ZK DEX** desde la barra de plugins.
+2. Inserta un **Script** en `ServerStorage`.
+3. Copia dentro el contenido de `src/ZKDexPlugin.server.lua`.
+4. Selecciona ese Script.
+5. En **Plugins**, elige **Save as Local Plugin / Guardar como complemento local**.
+6. Abre **ZK DEX** desde la barra de plugins.
+
+Roblox documenta oficialmente este flujo para crear plugins locales.
 
 ## Guardar un mapa
 
-- **Save Selection** guarda los objetos seleccionados usando `Plugin:PromptSaveSelectionAsync()`.
-- **Save Workspace Map** toma los hijos de primer nivel de `Workspace`, los selecciona temporalmente, abre el diálogo de guardado y luego restaura tu selección original.
+- **Save Selection** guarda los objetos actualmente seleccionados.
+- **Save Workspace Map** selecciona temporalmente todos los hijos de primer nivel de `Workspace` salvo `Camera`, abre `Plugin:PromptSaveSelectionAsync()` y luego restaura tu selección anterior.
 
-Roblox documenta `PromptSaveSelectionAsync` como una API oficial de plugins para guardar la selección.
+Esto genera un archivo de modelo de Roblox que puedes volver a insertar en Studio.
 
 ## Estructura
 
 ```
 src/
-  ZKDexPlugin.server.lua
-  modules/
+  ZKDexPlugin.server.lua     # plugin autocontenido
+  modules/                   # versión modular para desarrollo
     Explorer.lua
     Inspector.lua
     Exporter.lua
 default.project.json
 ```
 
+## Próximas mejoras útiles
+
+- búsqueda y filtros tipo DEX;
+- árbol expandible/colapsable en vez de lista completa;
+- soporte específico para Lighting, Terrain y servicios adicionales;
+- snapshot A/B y diff de instancias;
+- exportador de dependencias de MeshId, TextureID, SoundId y AnimationId;
+- empaquetado automático como `.rbxm`.
+
 ## Enfoque
 
-La meta es replicar el flujo visual de DEX y la capacidad de sacar el mapa a Studio cuando trabajas con un proyecto autorizado, sin depender de executors externos.
+La meta es conservar la experiencia visual de DEX y la capacidad de llevar un mapa autorizado a Studio, usando APIs oficiales del editor y sin depender de un executor externo.
