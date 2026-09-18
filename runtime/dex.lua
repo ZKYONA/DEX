@@ -35,6 +35,10 @@ local function hasId(tbl, id)
 	return false
 end
 
+local function hasValues(tbl)
+	return type(tbl) == "table" and next(tbl) ~= nil
+end
+
 local function isPrivateOrStudio()
 	if game:GetService("RunService"):IsStudio() then
 		return true
@@ -57,6 +61,12 @@ local function authorize()
 			("Current place is not allowlisted. PlaceId=%s GameId=%s")
 			:format(tostring(game.PlaceId), tostring(game.GameId))
 		)
+	end
+
+	if hasValues(AUTH.AllowedCreatorIds)
+		and not hasId(AUTH.AllowedCreatorIds, game.CreatorId)
+	then
+		deny(("CreatorId %s is not allowlisted."):format(tostring(game.CreatorId)))
 	end
 
 	if AUTH.RequirePrivateServer ~= false and not isPrivateOrStudio() then
