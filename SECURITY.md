@@ -1,16 +1,13 @@
-# Safety mode
+# Runtime safety
 
-The runtime now fails closed unless the current place or universe is explicitly allowlisted.
+ZK DEX no longer enforces an internal authorization/allowlist gate.
 
-Recommended settings:
-- explicit authorization acknowledgement;
-- allowlisted PlaceId or GameId;
-- private/reserved server requirement;
-- map-only mode;
-- block incomplete streaming snapshots;
-- block repeated runs;
-- keep third-party visual UI disabled unless intentionally enabled.
+The runtime still keeps non-authorization safeguards:
+- map-only mode by default;
+- block incomplete streaming snapshots unless explicitly allowed;
+- block repeated saves by default;
+- configurable instance-count ceiling;
+- third-party visual DEX disabled by default;
+- no stealth, concealment, or anti-cheat evasion logic.
 
-Use `runtime/config.example.lua` as the starting configuration.
-
-These safeguards are intended to prevent accidental execution in the wrong environment. They do not provide stealth, concealment, or a guarantee against platform enforcement.
+Use `runtime/config.example.lua` for the recommended defaults.
