@@ -1,4 +1,4 @@
--- ZK DEX Runtime - hardened authorized autosave
+-- ZK DEX Runtime - autosave
 
 local PINNED_USSI_COMMIT = "936066265affb4e4c9889179a8223064514c7820"
 local USSI_URL =
@@ -6,43 +6,11 @@ local USSI_URL =
 	.. PINNED_USSI_COMMIT
 	.. "/saveinstance.luau"
 
-local ACK = "I_HAVE_PERMISSION_TO_TEST_THIS_PLACE"
-
 local ENV = type(getgenv) == "function" and getgenv() or _G
 local CONFIG = ENV.ZKDEX_CONFIG or {}
-local AUTH = CONFIG.Authorization or {}
 
-local function deny(message)
-	error("[ZK DEX SAFETY] " .. message, 0)
-end
-
-local function hasId(tbl, id)
-	if type(tbl) ~= "table" then
-		return false
-	end
-	if tbl[id] == true or tbl[tostring(id)] == true then
-		return true
-	end
-	for _, value in pairs(tbl) do
-		if tonumber(value) == id then
-			return true
-		end
-	end
-	return false
-end
-
-local function hasValues(tbl)
-	return type(tbl) == "table" and next(tbl) ~= nil
-end
-
-local function isPrivateOrStudio()
-	if game:GetService("RunService"):IsStudio() then
-		return true
-	end
-	local ok, value = pcall(function()
-		return game.PrivateServerId
-	end)
-	return ok and type(value) == "string" and value ~= ""
+local function stop(message)
+	error("[ZK DEX] " .. message, 0)
 end
 
 local function notify(title, text)
@@ -54,52 +22,6 @@ local function notify(title, text)
 		})
 	end)
 	print(("[ZK DEX] %s | %s"):format(title, text))
-end
-
-local function authorize()
-	if AUTH.Acknowledgement ~= ACK then
-		deny("Missing explicit authorization acknowledgement.")
-	end
-
-	local allowed =
-		hasId(AUTH.AllowedPlaceIds, game.PlaceId)
-		or hasId(AUTH.AllowedGameIds, game.GameId)
-
-	if not allowed then
-		deny(
-			("Current place is not allowlisted. PlaceId=%s GameId=%s")
-			:format(tostring(game.PlaceId), tostring(game.GameId))
-		)
-	end
-
-	if hasValues(AUTH.AllowedCreatorIds)
-		and not hasId(AUTH.AllowedCreatorIds, game.CreatorId)
-	then
-		deny(("CreatorId %s is not allowlisted."):format(tostring(game.CreatorId)))
-	end
-
-	if AUTH.RequirePrivateServer ~= false and not isPrivateOrStudio() then
-		deny("Public-server execution is blocked by safety policy.")
-	end
-
-	if workspace.StreamingEnabled and CONFIG.AllowStreamingIncomplete ~= true then
-		deny(
-			"StreamingEnabled is on; capture may be incomplete. "
-			.. "Use a development copy with streaming disabled, "
-			.. "or explicitly allow an incomplete snapshot."
-		)
-	end
-
-	local count = #game:GetDescendants()
-	local maxInstances = tonumber(CONFIG.MaxInstances) or 400000
-	if count > maxInstances then
-		deny(
-			("DataModel has %d descendants, above MaxInstances=%d.")
-			:format(count, maxInstances)
-		)
-	end
-
-	return count
 end
 
 assert(type(loadstring) == "function", "ZK DEX: loadstring() is required")
@@ -116,21 +38,36 @@ if settleSeconds > 0 then
 end
 
 if ENV.__ZKDEX_SAVE_IN_PROGRESS then
-	deny("A save is already in progress.")
+	stop("A save is already in progress.")
 end
 
 local cooldown = math.max(0, tonumber(CONFIG.RepeatCooldownSeconds) or 300)
 local lastSave = tonumber(ENV.__ZKDEX_LAST_SAVE_AT)
 if CONFIG.AllowRepeat ~= true and lastSave and (os.clock() - lastSave) < cooldown then
-	deny(("Repeated save blocked for %d seconds."):format(cooldown))
+	stop(("Repeated save blocked for %d seconds."):format(cooldown))
 end
 
-local instanceCount = authorize()
+if workspace.StreamingEnabled and CONFIG.AllowStreamingIncomplete ~= true then
+	stop(
+		"StreamingEnabled is on; the client may not have the full map. "
+		.. "Set AllowStreamingIncomplete=true if a partial snapshot is intentional."
+	)
+end
+
+local instanceCount = #game:GetDescendants()
+local maxInstances = tonumber(CONFIG.MaxInstances) or 400000
+if instanceCount > maxInstances then
+	stop(
+		("DataModel has %d descendants, above MaxInstances=%d.")
+		:format(instanceCount, maxInstances)
+	)
+end
+
 ENV.__ZKDEX_SAVE_IN_PROGRESS = true
 
 local function run()
 	notify(
-		"ZK DEX - Authorized",
+		"ZK DEX",
 		("Place %s | Universe %s | %d instances")
 		:format(tostring(game.PlaceId), tostring(game.GameId), instanceCount)
 	)
@@ -173,7 +110,7 @@ local function run()
 		options.SavePlayers = CONFIG.SavePlayers == true
 	end
 
-	notify("ZK DEX", mapOnly and "Saving map-only snapshot..." or "Saving authorized snapshot...")
+	notify("ZK DEX", mapOnly and "Saving map-only snapshot..." or "Saving replicated DataModel...")
 
 	local started = os.clock()
 	local ok, result = pcall(synsaveinstance, options)
