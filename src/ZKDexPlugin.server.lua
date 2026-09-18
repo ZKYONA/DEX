@@ -2,17 +2,241 @@ assert(plugin, "ZK DEX debe ejecutarse como plugin de Roblox Studio")
 
 local Selection = game:GetService("Selection")
 
-local moduleRoot = script.Parent:WaitForChild("modules")
-local Explorer = require(moduleRoot:WaitForChild("Explorer"))
-local Inspector = require(moduleRoot:WaitForChild("Inspector"))
-local Exporter = require(moduleRoot:WaitForChild("Exporter"))
+-- =========================================================
+-- Exporter
+-- =========================================================
+local Exporter = {}
 
+local function getWorkspaceRoots()
+	local roots = {}
+	for _, child in ipairs(workspace:GetChildren()) do
+		if not child:IsA("Camera") then
+			table.insert(roots, child)
+		end
+	end
+	return roots
+end
+
+function Exporter.saveSelection(pluginRef: Plugin, suggestedName: string?): (boolean, string?)
+	local currentSelection = Selection:Get()
+	if #currentSelection == 0 then
+		return false, "No hay objetos seleccionados."
+	end
+
+	local ok, result = pcall(function()
+		return pluginRef:PromptSaveSelectionAsync(suggestedName or "ZKDEX_Selection")
+	end)
+
+	if not ok then
+		return false, tostring(result)
+	end
+
+	return result == true, result == true and nil or "El guardado fue cancelado."
+end
+
+function Exporter.saveWorkspaceMap(pluginRef: Plugin): (boolean, string?)
+	local oldSelection = Selection:Get()
+	local roots = getWorkspaceRoots()
+
+	if #roots == 0 then
+		return false, "Workspace no contiene objetos exportables."
+	end
+
+	Selection:Set(roots)
+
+	local ok, result = pcall(function()
+		return pluginRef:PromptSaveSelectionAsync(
+			("ZKDEX_Map_%s"):format(tostring(game.PlaceId))
+		)
+	end)
+
+	Selection:Set(oldSelection)
+
+	if not ok then
+		return false, tostring(result)
+	end
+
+	return result == true, result == true and nil or "El guardado fue cancelado."
+end
+
+function Exporter.countInstances(): number
+	return #game:GetDescendants()
+end
+
+-- =========================================================
+-- Inspector
+-- =========================================================
+local Inspector = {}
+
+local function safeRead(instance: Instance, property: string)
+	local ok, value = pcall(function()
+		return (instance :: any)[property]
+	end)
+	if not ok then
+		return nil
+	end
+	return value
+end
+
+local function formatValue(value: any): string
+	local kind = typeof(value)
+
+	if kind == "Vector3" then
+		return string.format("%.3f, %.3f, %.3f", value.X, value.Y, value.Z)
+	elseif kind == "Vector2" then
+		return string.format("%.3f, %.3f", value.X, value.Y)
+	elseif kind == "CFrame" then
+		local p = value.Position
+		return string.format("CFrame @ %.3f, %.3f, %.3f", p.X, p.Y, p.Z)
+	elseif kind == "Color3" then
+		return string.format(
+			"RGB(%d, %d, %d)",
+			math.round(value.R * 255),
+			math.round(value.G * 255),
+			math.round(value.B * 255)
+		)
+	elseif kind == "EnumItem" then
+		return tostring(value)
+	elseif kind == "Instance" then
+		return value:GetFullName()
+	end
+
+	return tostring(value)
+end
+
+function Inspector.describe(instance: Instance): {{name: string, value: string}}
+	local rows = {
+		{name = "Name", value = instance.Name},
+		{name = "ClassName", value = instance.ClassName},
+		{name = "Path", value = instance:GetFullName()},
+	}
+
+	local common = {
+		"Archivable",
+		"Position",
+		"Orientation",
+		"Size",
+		"Anchored",
+		"CanCollide",
+		"Transparency",
+		"Material",
+		"Color",
+		"MeshId",
+		"TextureID",
+		"Texture",
+		"SoundId",
+		"AnimationId",
+		"Enabled",
+	}
+
+	for _, property in ipairs(common) do
+		local value = safeRead(instance, property)
+		if value ~= nil then
+			table.insert(rows, {
+				name = property,
+				value = formatValue(value),
+			})
+		end
+	end
+
+	for key, value in pairs(instance:GetAttributes()) do
+		table.insert(rows, {
+			name = "@" .. key,
+			value = formatValue(value),
+		})
+	end
+
+	return rows
+end
+
+-- =========================================================
+-- Explorer
+-- =========================================================
+local Explorer = {}
+local TREE_ROW_HEIGHT = 22
+
+local function clearTree(frame: ScrollingFrame)
+	for _, child in ipairs(frame:GetChildren()) do
+		if child:IsA("GuiObject") then
+			child:Destroy()
+		end
+	end
+end
+
+local function addTreeRow(
+	frame: ScrollingFrame,
+	instance: Instance,
+	depth: number,
+	index: number,
+	onSelect: (Instance) -> ()
+)
+	local button = Instance.new("TextButton")
+	button.Name = "Row_" .. index
+	button.AutoButtonColor = true
+	button.BorderSizePixel = 0
+	button.BackgroundTransparency = 1
+	button.TextXAlignment = Enum.TextXAlignment.Left
+	button.Font = Enum.Font.Code
+	button.TextSize = 14
+	button.TextColor3 = Color3.fromRGB(225, 225, 230)
+	button.Text = string.rep("   ", depth) .. instance.Name .. "  [" .. instance.ClassName .. "]"
+	button.Position = UDim2.fromOffset(0, (index - 1) * TREE_ROW_HEIGHT)
+	button.Size = UDim2.new(1, -4, 0, TREE_ROW_HEIGHT)
+	button.Parent = frame
+
+	button.MouseButton1Click:Connect(function()
+		onSelect(instance)
+	end)
+end
+
+function Explorer.render(
+	frame: ScrollingFrame,
+	rootInstance: Instance,
+	onSelect: (Instance) -> (),
+	maxRows: number?
+): number
+	clearTree(frame)
+
+	local limit = maxRows or 5000
+	local index = 0
+
+	local function walk(instance: Instance, depth: number)
+		if index >= limit then
+			return
+		end
+
+		index += 1
+		addTreeRow(frame, instance, depth, index, onSelect)
+
+		for _, child in ipairs(instance:GetChildren()) do
+			if index >= limit then
+				break
+			end
+			walk(child, depth + 1)
+		end
+	end
+
+	for _, child in ipairs(rootInstance:GetChildren()) do
+		walk(child, 0)
+		if index >= limit then
+			break
+		end
+	end
+
+	frame.CanvasSize = UDim2.fromOffset(0, index * TREE_ROW_HEIGHT)
+	return index
+end
+
+-- =========================================================
+-- Plugin UI
+-- =========================================================
 local toolbar = plugin:CreateToolbar("ZK DEX")
 local toggleButton = toolbar:CreateButton(
 	"ZKDEX_Toggle",
 	"Abrir/cerrar ZK DEX",
 	"rbxassetid://4458901886"
 )
+toggleButton.ClickableWhenViewportHidden = true
 
 local widgetInfo = DockWidgetPluginGuiInfo.new(
 	Enum.InitialDockState.Left,
@@ -132,7 +356,7 @@ props.ScrollBarThickness = 8
 props.CanvasSize = UDim2.fromOffset(0, 0)
 props.Parent = propertiesPane
 
-local ROW_HEIGHT = 24
+local PROPERTY_ROW_HEIGHT = 24
 
 local function clearProperties()
 	for _, child in ipairs(props:GetChildren()) do
@@ -159,8 +383,8 @@ local function renderProperties(instance: Instance?)
 			and Color3.fromRGB(40, 40, 46)
 			or Color3.fromRGB(36, 36, 41)
 		frame.BorderSizePixel = 0
-		frame.Position = UDim2.fromOffset(0, (index - 1) * ROW_HEIGHT)
-		frame.Size = UDim2.new(1, -2, 0, ROW_HEIGHT)
+		frame.Position = UDim2.fromOffset(0, (index - 1) * PROPERTY_ROW_HEIGHT)
+		frame.Size = UDim2.new(1, -2, 0, PROPERTY_ROW_HEIGHT)
 		frame.Parent = props
 
 		local name = Instance.new("TextLabel")
@@ -187,7 +411,7 @@ local function renderProperties(instance: Instance?)
 		value.Parent = frame
 	end
 
-	props.CanvasSize = UDim2.fromOffset(0, #rows * ROW_HEIGHT)
+	props.CanvasSize = UDim2.fromOffset(0, #rows * PROPERTY_ROW_HEIGHT)
 end
 
 local function selectInstance(instance: Instance)
