@@ -1,5 +1,10 @@
 # ZK DEX
 
+> Hay **dos modos** en este repositorio:
+> 1. `runtime/`: el flujo clásico tipo Synapse/DEX — abres un juego, ejecutas el script en un runtime compatible y se genera un place `.rbxl/.rbxlx`.
+> 2. `src/`: plugin de Roblox Studio para proyectos abiertos directamente en Studio.
+
+
 ZK DEX es una recreación **para Roblox Studio y proyectos autorizados** de la parte útil de la experiencia clásica DEX/Synapse: Explorer, Properties y exportación del mapa.
 
 ## Qué incluye
@@ -59,3 +64,37 @@ default.project.json
 ## Enfoque
 
 La meta es conservar la experiencia visual de DEX y la capacidad de llevar un mapa autorizado a Studio, usando APIs oficiales del editor y sin depender de un executor externo.
+
+
+## Modo Runtime — el que replica Synapse + DEX
+
+Para el flujo que buscabas, usa `runtime/`.
+
+### Guardado inmediato del place cargado
+
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/ZKYONA/DEX/main/runtime/autosave.lua", true))()
+```
+
+El archivo generado queda en el directorio de archivos/workspace que exponga tu runtime y luego se abre con Roblox Studio.
+
+### DEX visual + Save Instance
+
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/ZKYONA/DEX/main/runtime/dex.lua", true))()
+```
+
+Este loader instala primero un wrapper `saveinstance` basado en **UniversalSynSaveInstance (USSI)** fijado a una versión conocida y después abre DeX Explorer.
+
+### Diagnóstico
+
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/ZKYONA/DEX/main/runtime/diagnostics.lua", true))()
+```
+
+El runtime debe proporcionar como mínimo `loadstring`, `game:HttpGet` y `writefile` para el guardado por USSI.
+
+**UniversalSynSaveInstance https://discord.gg/wx4ThpAsmw**
+
+USSI: https://github.com/luau/UniversalSynSaveInstance  
+DeX Explorer: https://github.com/FusionWTF/DeX-Explorer
