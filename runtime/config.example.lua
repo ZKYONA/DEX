@@ -10,6 +10,10 @@ getgenv().ZKDEX_CONFIG = {
 	-- Workspace.StreamingEnabled is active.
 	AllowStreamingIncomplete = false,
 
+	-- Read-only validation mode. When true, autosave exits before downloading
+	-- the serializer or writing any file.
+	DryRun = false,
+
 	-- Runtime stability guards:
 	MaxInstances = 400000,
 	SettleSeconds = 3,
@@ -22,3 +26,7 @@ getgenv().ZKDEX_CONFIG = {
 	-- Optional output name:
 	-- FilePath = "MyMap",
 }
+
+
+-- Emergency kill-switch (set at any time before serialization starts):
+-- getgenv().ZKDEX_ABORT = true

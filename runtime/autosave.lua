@@ -32,6 +32,22 @@ if not game:IsLoaded() then
 	game.Loaded:Wait()
 end
 
+if ENV.ZKDEX_ABORT == true then
+	stop("Emergency abort flag is active. Set getgenv().ZKDEX_ABORT = false before saving.")
+end
+
+if CONFIG.DryRun == true then
+	notify("ZK DEX", "DryRun enabled: no file will be written.")
+	return {
+		ok = true,
+		dryRun = true,
+		placeId = game.PlaceId,
+		gameId = game.GameId,
+		instanceCount = #game:GetDescendants(),
+		streamingEnabled = workspace.StreamingEnabled,
+	}
+end
+
 local settleSeconds = math.clamp(tonumber(CONFIG.SettleSeconds) or 3, 0, 30)
 if settleSeconds > 0 then
 	task.wait(settleSeconds)
@@ -72,6 +88,10 @@ local function run()
 		:format(tostring(game.PlaceId), tostring(game.GameId), instanceCount)
 	)
 
+	if ENV.ZKDEX_ABORT == true then
+		stop("Emergency abort flag became active before serializer download.")
+	end
+
 	local source = game:HttpGet(USSI_URL, true)
 	local chunk, compileError = loadstring(source, "ZKDEX_USSI")
 	assert(chunk, compileError)
@@ -111,6 +131,10 @@ local function run()
 	end
 
 	notify("ZK DEX", mapOnly and "Saving map-only snapshot..." or "Saving replicated DataModel...")
+
+	if ENV.ZKDEX_ABORT == true then
+		stop("Emergency abort flag became active before serialization.")
+	end
 
 	local started = os.clock()
 	local ok, result = pcall(synsaveinstance, options)
