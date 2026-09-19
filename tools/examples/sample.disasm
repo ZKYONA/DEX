@@ -1,0 +1,18 @@
+Function 0 (sum):
+Constants:
+K0 = 'hello'
+1: local x = 5
+LOADN R0 5
+2: local y = 10
+LOADN R1 10
+3: return x + y
+ADD R2 R0 R1
+RETURN R2 1
+
+Function 1 (??):
+1: print(sum())
+GETIMPORT R0 1 [print]
+DUPCLOSURE R1 K2 [sum]
+CALL R1 0 1
+CALL R0 1 0
+RETURN R0 0
